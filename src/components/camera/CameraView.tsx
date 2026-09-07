@@ -57,8 +57,8 @@ function playShutterSound() {
 
 
 export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClose }) => {
-  const rearVideoRef = useRef<HTMLVideoElement>(null);
-  const frontVideoRef = useRef<HTMLVideoElement>(null);
+  const mainVideoRef = useRef<HTMLVideoElement>(null);
+  const overlayVideoRef = useRef<HTMLVideoElement>(null);
   const [showDebug, setShowDebug] = useState(false);
   const [flashMode, setFlashMode] = useState<FlashMode>('off');
   const [currentLensIndex, setCurrentLensIndex] = useState(0);
@@ -70,8 +70,7 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
     error: cameraError,
     mode,
     initialize,
-    startRearCamera,
-    startFrontCamera,
+    startStreams,
     manager,
     isLoading,
   } = useCamera();
@@ -111,25 +110,17 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
     initialize();
   }, [initialize]);
 
-  // Synchronously trigger and start both rear & front cameras
+  // Synchronously trigger and start both rear & front cameras using startStreams
   const triggerCameras = useCallback(async () => {
     if (permissionState !== 'granted') return;
+    if (!mainVideoRef.current) return;
 
     try {
-      if (rearVideoRef.current) {
-        await startRearCamera(rearVideoRef.current, currentLensIndex);
-      }
-      // Small pause to allow hardware stream stabilization
-      await new Promise((res) => setTimeout(res, 120));
-      if (frontVideoRef.current) {
-        await startFrontCamera(frontVideoRef.current);
-      }
-      rearVideoRef.current?.play().catch(() => {});
-      frontVideoRef.current?.play().catch(() => {});
+      await startStreams(mainVideoRef.current, overlayVideoRef.current, isSwapped, currentLensIndex);
     } catch (e) {
       console.warn('[CameraView] Trigger sync error:', e);
     }
-  }, [permissionState, currentLensIndex, startRearCamera, startFrontCamera]);
+  }, [permissionState, currentLensIndex, isSwapped, startStreams]);
 
   // Initialize camera streams when permission granted or swapped state changes
   useEffect(() => {
@@ -171,15 +162,9 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
     setZoom(1.0);
 
     try {
-      if (rearVideoRef.current) {
-        await startRearCamera(rearVideoRef.current, nextIndex);
+      if (mainVideoRef.current) {
+        await startStreams(mainVideoRef.current, overlayVideoRef.current, isSwapped, nextIndex);
       }
-      await new Promise((res) => setTimeout(res, 120));
-      if (frontVideoRef.current) {
-        await startFrontCamera(frontVideoRef.current);
-      }
-      rearVideoRef.current?.play().catch(() => {});
-      frontVideoRef.current?.play().catch(() => {});
     } catch (e) {
       console.warn('[CameraView] Switch lens error:', e);
     }
@@ -217,7 +202,7 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
 
       {/* Main Fullscreen Camera Preview (Rear by default, Front when swapped) */}
       <CameraPreview
-        ref={isSwapped ? frontVideoRef : rearVideoRef}
+        ref={mainVideoRef}
         zoom={isSwapped ? 1 : zoom}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
@@ -227,9 +212,9 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
 
       {/* Camera PiP Overlay (Front by default, Rear when swapped) */}
       <FrontCameraOverlay
-        ref={isSwapped ? rearVideoRef : frontVideoRef}
+        ref={overlayVideoRef}
         onClick={handleOverlayClick}
-      />
+      />"
 
       {/* Flash & State Transition Animations */}
       <CaptureAnimation captureState={captureState} />

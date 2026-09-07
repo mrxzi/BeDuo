@@ -19,6 +19,8 @@ export interface UseCameraReturn {
   startRearCamera: (video: HTMLVideoElement, lensIndex?: number) => Promise<void>;
   /** Start front camera on the given video element (simultaneous mode only) */
   startFrontCamera: (video: HTMLVideoElement) => Promise<void>;
+  /** Start main and overlay streams with explicit facing assignment */
+  startStreams: (mainVideo: HTMLVideoElement, overlayVideo: HTMLVideoElement | null, isSwapped?: boolean, lensIndex?: number) => Promise<void>;
   /** Set the hidden video element for sequential capture */
   setSequentialVideoRef: (video: HTMLVideoElement) => void;
   /** Clean up all camera resources */
@@ -100,6 +102,16 @@ export function useCamera(): UseCameraReturn {
     }
   }, [manager, updateDebugInfo]);
 
+  const startStreams = useCallback(async (mainVideo: HTMLVideoElement, overlayVideo: HTMLVideoElement | null, isSwapped = false, lensIndex = 0) => {
+    try {
+      await manager.startStreams(mainVideo, overlayVideo, isSwapped, lensIndex);
+      setMode(manager.getMode());
+      updateDebugInfo();
+    } catch (err) {
+      setError(err as CameraError);
+    }
+  }, [manager, updateDebugInfo]);
+
   const setSequentialVideoRef = useCallback((video: HTMLVideoElement) => {
     manager.setSequentialVideoRef(video);
   }, [manager]);
@@ -148,6 +160,7 @@ export function useCamera(): UseCameraReturn {
     initialize,
     startRearCamera,
     startFrontCamera,
+    startStreams,
     setSequentialVideoRef,
     cleanup,
     restart,

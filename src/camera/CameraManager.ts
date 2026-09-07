@@ -158,6 +158,94 @@ export class CameraManager {
   // ---- Stream Management ----
 
   /**
+   * Start main and overlay camera streams with explicit primary/secondary facing assignment.
+   */
+  async startStreams(
+    mainVideoElement: HTMLVideoElement,
+    overlayVideoElement: HTMLVideoElement | null,
+    isSwapped = false,
+    rearDeviceIndex = 0
+  ): Promise<void> {
+    this.isSwapped = isSwapped;
+
+    const primaryFacing = isSwapped ? 'user' : 'environment';
+
+    try {
+      // Stop existing streams to avoid hardware conflicts
+      if (this.rearStream) {
+        stopStream(this.rearStream);
+        this.rearStream = null;
+      }
+      if (this.frontStream) {
+        stopStream(this.frontStream);
+        this.frontStream = null;
+      }
+
+      if (primaryFacing === 'environment') {
+        // Main view = Rear camera
+        this.rearVideoRef = mainVideoElement;
+        const rearDevices = this.capabilities?.rearDevices || [];
+        const rearDevice = rearDeviceIndex > 0 ? rearDevices[rearDeviceIndex] : undefined;
+
+        this.rearStream = await openStream({
+          facing: 'environment',
+          deviceId: rearDevice?.deviceId,
+        });
+
+        this.rearZoomLevel = 1.0;
+        await applyTrackZoom(this.rearStream, 1.0);
+        await attachStreamToVideo(mainVideoElement, this.rearStream, this.config.videoReadinessTimeoutMs);
+
+        // Secondary view = Front camera (if simultaneous mode supported)
+        if (this.mode === 'simultaneous' && overlayVideoElement && this.capabilities?.hasFrontCamera) {
+          try {
+            this.frontVideoRef = overlayVideoElement;
+            const frontDevice = this.capabilities?.frontDevices[0];
+            this.frontStream = await openStream({
+              facing: 'user',
+              deviceId: frontDevice?.deviceId,
+            });
+            await attachStreamToVideo(overlayVideoElement, this.frontStream, this.config.videoReadinessTimeoutMs);
+          } catch (err) {
+            console.warn('[CameraManager] Secondary front stream failed:', err);
+          }
+        }
+      } else {
+        // Main view = Front camera (isSwapped === true)
+        this.frontVideoRef = mainVideoElement;
+        const frontDevice = this.capabilities?.frontDevices[0];
+
+        this.frontStream = await openStream({
+          facing: 'user',
+          deviceId: frontDevice?.deviceId,
+        });
+        await attachStreamToVideo(mainVideoElement, this.frontStream, this.config.videoReadinessTimeoutMs);
+
+        // Secondary view = Rear camera (if simultaneous mode supported)
+        if (this.mode === 'simultaneous' && overlayVideoElement && this.capabilities?.hasRearCamera) {
+          try {
+            this.rearVideoRef = overlayVideoElement;
+            const rearDevices = this.capabilities?.rearDevices || [];
+            const rearDevice = rearDeviceIndex > 0 ? rearDevices[rearDeviceIndex] : undefined;
+            this.rearStream = await openStream({
+              facing: 'environment',
+              deviceId: rearDevice?.deviceId,
+            });
+            this.rearZoomLevel = 1.0;
+            await applyTrackZoom(this.rearStream, 1.0);
+            await attachStreamToVideo(overlayVideoElement, this.rearStream, this.config.videoReadinessTimeoutMs);
+          } catch (err) {
+            console.warn('[CameraManager] Secondary rear stream failed:', err);
+          }
+        }
+      }
+    } catch (err) {
+      this.lastError = classifyCameraError(err);
+      throw this.lastError;
+    }
+  }
+
+  /**
    * Start the rear camera stream and attach to video element.
    * Supports selecting specific rear device index for iPhone wide/ultra-wide lenses.
    */
