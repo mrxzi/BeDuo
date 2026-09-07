@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Send, MapPin, Users } from 'lucide-react';
+import { Send } from 'lucide-react';
 import type { DualCaptureResult } from '../camera/types';
 import { PostService } from '../services/posts';
 
@@ -112,11 +112,9 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
         {/* Center Info Overlay: Location + My Friends — centered, slightly below middle */}
         <div className="preview-center-info">
           <div className="preview-friends-badge">
-            <Users size={12} className="preview-friends-icon" />
             <span className="preview-friends-text">My Friends</span>
           </div>
           <div className="preview-location-badge">
-            <MapPin size={12} className="preview-location-icon" />
             <span className="preview-location-text">{locationLabel}</span>
           </div>
         </div>

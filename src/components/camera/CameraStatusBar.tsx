@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap, ZapOff, RefreshCw, Sliders, X } from 'lucide-react';
+import { Zap, ZapOff, X } from 'lucide-react';
 import type { CameraMode, FlashMode } from '../../camera/types';
 
 interface CameraStatusBarProps {
@@ -70,29 +70,7 @@ export const CameraStatusBar: React.FC<CameraStatusBarProps> = ({
           </button>
         )}
 
-        {onSwapCameras && (
-          <button
-            type="button"
-            className="camera-icon-button"
-            onClick={onSwapCameras}
-            aria-label="Swap main camera view"
-            title="Swap view"
-          >
-            <RefreshCw size={18} />
-          </button>
-        )}
 
-        {showDebugToggle && onToggleDebug && (
-          <button
-            type="button"
-            className="camera-icon-button"
-            onClick={onToggleDebug}
-            aria-label="Camera diagnostics"
-            title="Diagnostics"
-          >
-            <Sliders size={18} />
-          </button>
-        )}
       </div>
     </header>
   );
