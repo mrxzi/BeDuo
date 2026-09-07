@@ -6,6 +6,7 @@ interface CameraPreviewProps {
   onTouchStart?: (e: React.TouchEvent) => void;
   onTouchMove?: (e: React.TouchEvent) => void;
   onTouchEnd?: (e: React.TouchEvent) => void;
+  onClick?: () => void;
 }
 
 /**
@@ -14,7 +15,7 @@ interface CameraPreviewProps {
  */
 export const CameraPreview = forwardRef<HTMLVideoElement, CameraPreviewProps>(
   function CameraPreview(
-    { className = '', zoom = 1, onTouchStart, onTouchMove, onTouchEnd },
+    { className = '', zoom = 1, onTouchStart, onTouchMove, onTouchEnd, onClick },
     ref
   ) {
     return (
@@ -23,6 +24,7 @@ export const CameraPreview = forwardRef<HTMLVideoElement, CameraPreviewProps>(
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
+        onClick={onClick}
         // allow gesture tracking without scroll interference
         style={{ touchAction: 'none', overflow: 'hidden' }}
       >

@@ -37,12 +37,21 @@ export class CameraManager {
   private captureStartTime: number | null = null;
   private captureDuration: number | null = null;
   private _isInitialized = false;
+  private isSwapped = false;
 
   constructor(config?: Partial<CameraManagerConfig>) {
     this.config = { ...DEFAULT_CAMERA_CONFIG, ...config };
   }
 
   // ---- Getters & Zoom ----
+
+  setIsSwapped(swapped: boolean): void {
+    this.isSwapped = swapped;
+  }
+
+  getIsSwapped(): boolean {
+    return this.isSwapped;
+  }
 
   async setRearZoom(zoom: number): Promise<void> {
     this.rearZoomLevel = zoom;
@@ -354,7 +363,10 @@ export class CameraManager {
         };
       }
 
-      const composition: CompositionResult = await composeImage(rearFrame, frontFrame, this.config.composition);
+      const bgFrame = this.isSwapped ? frontFrame : rearFrame;
+      const fgFrame = this.isSwapped ? rearFrame : frontFrame;
+
+      const composition: CompositionResult = await composeImage(bgFrame, fgFrame, this.config.composition);
 
       this.captureDuration = Date.now() - this.captureStartTime;
 

@@ -62,6 +62,7 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
   const [showDebug, setShowDebug] = useState(false);
   const [flashMode, setFlashMode] = useState<FlashMode>('off');
   const [currentLensIndex, setCurrentLensIndex] = useState(0);
+  const [isSwapped, setIsSwapped] = useState(false);
 
   const {
     permissionState,
@@ -76,6 +77,24 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
   } = useCamera();
 
   const { capture, captureState, result, error: captureError } = useCapture(manager);
+
+  const handleToggleSwap = useCallback((targetSwapped?: boolean) => {
+    const nextSwapped = targetSwapped !== undefined ? targetSwapped : !isSwapped;
+    setIsSwapped(nextSwapped);
+    manager.setIsSwapped(nextSwapped);
+  }, [isSwapped, manager]);
+
+  const handleOverlayClick = useCallback(() => {
+    // Tapping small overlay opens the camera currently in the inset box as the main view
+    handleToggleSwap(!isSwapped);
+  }, [isSwapped, handleToggleSwap]);
+
+  const handleMainClick = useCallback(() => {
+    // Tapping big main preview switches back to rear camera if front camera is currently active
+    if (isSwapped) {
+      handleToggleSwap(false);
+    }
+  }, [isSwapped, handleToggleSwap]);
 
   // Zoom hook: syncs with manager and applies both native + digital zoom
   const handleZoomChange = useCallback(
@@ -112,12 +131,12 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
     }
   }, [permissionState, currentLensIndex, startRearCamera, startFrontCamera]);
 
-  // Initialize camera streams when permission granted
+  // Initialize camera streams when permission granted or swapped state changes
   useEffect(() => {
     if (permissionState === 'granted') {
       triggerCameras();
     }
-  }, [permissionState, triggerCameras]);
+  }, [permissionState, isSwapped, triggerCameras]);
 
   const handledCaptureRef = useRef(false);
 
@@ -188,7 +207,7 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
         flashMode={flashMode}
         hasFlash={capabilities?.hasFlash ?? false}
         onToggleFlash={toggleFlash}
-        onSwapCameras={triggerCameras}
+        onSwapCameras={handleOverlayClick}
         onClose={onClose}
         onToggleDebug={() => setShowDebug(!showDebug)}
         rearLensCount={rearLensCount}
@@ -196,17 +215,21 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
         onSwitchLens={handleSwitchLens}
       />
 
-      {/* Main Fullscreen Rear Camera Preview with pinch-to-zoom */}
+      {/* Main Fullscreen Camera Preview (Rear by default, Front when swapped) */}
       <CameraPreview
-        ref={rearVideoRef}
-        zoom={zoom}
+        ref={isSwapped ? frontVideoRef : rearVideoRef}
+        zoom={isSwapped ? 1 : zoom}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
+        onClick={handleMainClick}
       />
 
-      {/* Front Camera PiP Overlay — tap overlay to trigger/re-sync cameras */}
-      <FrontCameraOverlay ref={frontVideoRef} onClick={triggerCameras} />
+      {/* Camera PiP Overlay (Front by default, Rear when swapped) */}
+      <FrontCameraOverlay
+        ref={isSwapped ? rearVideoRef : frontVideoRef}
+        onClick={handleOverlayClick}
+      />
 
       {/* Flash & State Transition Animations */}
       <CaptureAnimation captureState={captureState} />
