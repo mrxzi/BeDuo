@@ -214,7 +214,7 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
       <FrontCameraOverlay
         ref={overlayVideoRef}
         onClick={handleOverlayClick}
-      />"
+      />
 
       {/* Flash & State Transition Animations */}
       <CaptureAnimation captureState={captureState} />
