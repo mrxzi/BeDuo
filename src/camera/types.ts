@@ -168,15 +168,15 @@ export const DEFAULT_COMPOSITION_CONFIG: CompositionConfig = {
   frontOverlayBorderRadius: 10,
   frontOverlayBorderWidth: 2,
   frontOverlayBorderColor: '#000000',
-  mirrorFrontCapture: false,
+  mirrorFrontCapture: true,
   quality: 0.85,
   format: 'image/webp',
 };
 
 /** Default camera manager config */
 export const DEFAULT_CAMERA_CONFIG: CameraManagerConfig = {
-  mirrorFrontPreview: false,
-  mirrorFrontCapture: false,
+  mirrorFrontPreview: true,
+  mirrorFrontCapture: true,
   composition: DEFAULT_COMPOSITION_CONFIG,
   videoReadinessTimeoutMs: 5000,
   debugMode: import.meta.env.VITE_CAMERA_DEBUG === 'true',
