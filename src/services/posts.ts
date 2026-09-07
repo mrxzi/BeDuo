@@ -3,8 +3,6 @@ import { AuthService } from './auth';
 
 const POSTS_KEY = 'beduo_posts_v1';
 
-const INITIAL_MOCK_POSTS: Post[] = [];
-
 export const PostService = {
   getPosts(): Post[] {
     const raw = localStorage.getItem(POSTS_KEY);
