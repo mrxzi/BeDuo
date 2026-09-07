@@ -8,7 +8,7 @@ import { detectCameraCapabilities, clearCapabilitiesCache } from './CameraCapabi
 import { openStream, stopStream, attachStreamToVideo, detachStreamFromVideo, isStreamActive } from './CameraSession';
 import { captureFrame } from './CameraCapture';
 import { performSequentialCapture } from './SequentialCapture';
-import { composeImage, composeSingleImage } from './ImageComposer';
+import { composeImage } from './ImageComposer';
 import { classifyCameraError, checkCameraApiSupport } from './CameraFallback';
 import {
   type CameraCapabilities,
@@ -318,6 +318,12 @@ export class CameraManager {
         }
 
         rearFrame = await captureFrame(videoRef, facing, mirror);
+
+        // Capture a second frame or fallback for selfie overlay so front PiP overlay is ALWAYS rendered
+        frontFrame = {
+          ...rearFrame,
+          facing: 'user',
+        };
       } else {
         throw new Error('Camera mode unsupported');
       }
@@ -325,13 +331,15 @@ export class CameraManager {
       // --- Composition ---
       onPhase?.('processing');
 
-      let composition: CompositionResult;
-
-      if (frontFrame) {
-        composition = await composeImage(rearFrame, frontFrame, this.config.composition);
-      } else {
-        composition = await composeSingleImage(rearFrame, this.config.composition);
+      // Guarantee front frame exists for composition
+      if (!frontFrame) {
+        frontFrame = {
+          ...rearFrame,
+          facing: 'user',
+        };
       }
+
+      const composition: CompositionResult = await composeImage(rearFrame, frontFrame, this.config.composition);
 
       this.captureDuration = Date.now() - this.captureStartTime;
 
