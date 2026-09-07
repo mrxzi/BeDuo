@@ -34,6 +34,9 @@ export async function composeImage(
   const frontImg = await loadImageFromBlob(frontFrame.blob);
   drawFrontOverlay(ctx, frontImg, config);
 
+  // --- Draw Watermark Logo (bottom center) ---
+  await drawWatermarkLogo(ctx, outputWidth, outputHeight);
+
   // --- Export ---
   const blob = await canvasToBlob(canvas, config.format, config.quality);
 
@@ -69,6 +72,9 @@ export async function composeSingleImage(
 
   const img = await loadImageFromBlob(frame.blob);
   drawCoverFit(ctx, img, 0, 0, outputWidth, outputHeight);
+
+  // --- Draw Watermark Logo (bottom center) ---
+  await drawWatermarkLogo(ctx, outputWidth, outputHeight);
 
   const blob = await canvasToBlob(canvas, config.format, config.quality);
   const objectUrl = URL.createObjectURL(blob);
@@ -281,4 +287,50 @@ function canvasToBlob(
 
     tryFormat(format);
   });
+}
+
+/**
+ * Load an image from a URL string.
+ */
+function loadImageFromUrl(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = (e) => reject(e);
+    img.src = url;
+  });
+}
+
+/**
+ * Draw the brand watermark logo at the bottom center of the composited canvas.
+ */
+async function drawWatermarkLogo(
+  ctx: CanvasRenderingContext2D,
+  canvasWidth: number,
+  canvasHeight: number
+): Promise<void> {
+  try {
+    const logoImg = await loadImageFromUrl('/logo.png');
+
+    // Scale logo: width ~ 20% of canvas width (~216px on 1080px canvas)
+    const logoWidth = Math.round(canvasWidth * 0.20);
+    const logoHeight = Math.round(logoWidth * (logoImg.naturalHeight / logoImg.naturalWidth));
+
+    // Centered horizontally, positioned near bottom (~110px from bottom edge)
+    const x = Math.round((canvasWidth - logoWidth) / 2);
+    const y = canvasHeight - logoHeight - 110;
+
+    ctx.save();
+    // Drop shadow for logo contrast & high visibility over any photo background
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 3;
+    ctx.globalAlpha = 0.88;
+
+    ctx.drawImage(logoImg, x, y, logoWidth, logoHeight);
+    ctx.restore();
+  } catch (err) {
+    console.warn('[ImageComposer] Watermark logo rendering skipped:', err);
+  }
 }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { RefreshCw, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
 import type { DualCaptureResult } from '../camera/types';
 import { PostService } from '../services/posts';
 
@@ -14,12 +14,11 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
   onClearCapture,
 }) => {
   const navigate = useNavigate();
-  const [caption, setCaption] = useState('');
   const [isPosting, setIsPosting] = useState(false);
 
   if (!captureResult) {
     return (
-      <div className="page-container preview-empty">
+      <div className="page-container preview-empty" style={{ background: '#000000' }}>
         <h2>No photo captured yet</h2>
         <button
           type="button"
@@ -33,11 +32,12 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
   }
 
   const handlePost = async () => {
+    if (isPosting) return;
     setIsPosting(true);
     try {
       PostService.addPost({
         imageUrl: captureResult.compositedDataUrl,
-        caption,
+        caption: '',
         location: 'Local Moment',
       });
       onClearCapture();
@@ -49,36 +49,15 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
     }
   };
 
-  const handleRetake = () => {
-    onClearCapture();
-    navigate('/camera');
-  };
-
   return (
     <div className="preview-page-container">
-      {/* Top Header */}
-      <header className="preview-header">
-        <button
-          type="button"
-          className="preview-icon-btn"
-          onClick={handleRetake}
-          disabled={isPosting}
-        >
-          <RefreshCw size={16} />
-          <span>Retake</span>
-        </button>
-
-        <h3 className="preview-title">Preview BeDuo</h3>
-
-        <button
-          type="button"
-          className="preview-post-btn"
-          onClick={handlePost}
-          disabled={isPosting}
-        >
-          <span>{isPosting ? 'Posting...' : 'Post'}</span>
-          <Send size={16} />
-        </button>
+      {/* Top Header with Logo in Center */}
+      <header className="preview-header-logo-only">
+        <img
+          src="/logo.png"
+          alt="BeDuo Logo"
+          className="preview-top-logo"
+        />
       </header>
 
       {/* Main Image Display */}
@@ -88,19 +67,20 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
           alt="Composited BeDuo moment"
           className="preview-composited-image"
         />
-
       </div>
 
-      {/* Caption Form Bar */}
-      <div className="preview-caption-bar">
-        <input
-          type="text"
-          placeholder="Add a caption..."
-          value={caption}
-          onChange={(e) => setCaption(e.target.value)}
-          className="preview-caption-input"
-          maxLength={150}
-        />
+      {/* Bottom Send Action Button Bar */}
+      <div className="preview-send-bar">
+        <button
+          type="button"
+          className="preview-send-btn"
+          onClick={handlePost}
+          disabled={isPosting}
+          aria-label="Send photo"
+        >
+          <span className="preview-send-text">{isPosting ? 'SENDING...' : 'SEND'}</span>
+          <Send size={24} className="preview-send-icon" />
+        </button>
       </div>
     </div>
   );
