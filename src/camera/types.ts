@@ -165,18 +165,18 @@ export const DEFAULT_COMPOSITION_CONFIG: CompositionConfig = {
   frontOverlayPosition: 'top-left',
   frontOverlaySizeRatio: 0.32,
   frontOverlayMargin: 24,
-  frontOverlayBorderRadius: 26,
-  frontOverlayBorderWidth: 6,
+  frontOverlayBorderRadius: 10,
+  frontOverlayBorderWidth: 2,
   frontOverlayBorderColor: '#000000',
-  mirrorFrontCapture: true,
+  mirrorFrontCapture: false,
   quality: 0.85,
   format: 'image/webp',
 };
 
 /** Default camera manager config */
 export const DEFAULT_CAMERA_CONFIG: CameraManagerConfig = {
-  mirrorFrontPreview: true,
-  mirrorFrontCapture: true,
+  mirrorFrontPreview: false,
+  mirrorFrontCapture: false,
   composition: DEFAULT_COMPOSITION_CONFIG,
   videoReadinessTimeoutMs: 5000,
   debugMode: import.meta.env.VITE_CAMERA_DEBUG === 'true',
