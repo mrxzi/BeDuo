@@ -82,6 +82,8 @@ export interface CompositionConfig {
   frontOverlayPosition: CameraOverlayPosition;
   frontOverlaySizeRatio: number; // e.g. 0.28 = 28% of output width
   frontOverlayMargin: number; // px
+  frontOverlayMarginX?: number; // px
+  frontOverlayMarginY?: number; // px
   frontOverlayBorderRadius: number; // px
   frontOverlayBorderWidth: number; // px
   frontOverlayBorderColor: string;
@@ -165,6 +167,8 @@ export const DEFAULT_COMPOSITION_CONFIG: CompositionConfig = {
   frontOverlayPosition: 'top-left',
   frontOverlaySizeRatio: 0.32,
   frontOverlayMargin: 24,
+  frontOverlayMarginX: 60,
+  frontOverlayMarginY: 160,
   frontOverlayBorderRadius: 10,
   frontOverlayBorderWidth: 2,
   frontOverlayBorderColor: '#000000',

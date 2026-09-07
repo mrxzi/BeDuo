@@ -142,7 +142,9 @@ function drawFrontOverlay(
     outputHeight,
     overlayWidth,
     overlayHeight,
-    frontOverlayMargin
+    frontOverlayMargin,
+    config.frontOverlayMarginX,
+    config.frontOverlayMarginY
   );
 
   // Draw shadow & black backdrop
@@ -183,20 +185,25 @@ function calculateOverlayPosition(
   canvasHeight: number,
   overlayWidth: number,
   overlayHeight: number,
-  margin: number
+  margin: number,
+  marginX?: number,
+  marginY?: number
 ): { x: number; y: number } {
+  const mx = marginX ?? margin;
+  const my = marginY ?? margin;
+
   switch (position) {
     case 'top-left':
-      return { x: margin, y: margin };
+      return { x: mx, y: my };
     case 'top-right':
-      return { x: canvasWidth - overlayWidth - margin, y: margin };
+      return { x: canvasWidth - overlayWidth - mx, y: my };
     case 'bottom-left':
-      return { x: margin, y: canvasHeight - overlayHeight - margin };
+      return { x: mx, y: canvasHeight - overlayHeight - my };
     case 'bottom-right':
     default:
       return {
-        x: canvasWidth - overlayWidth - margin,
-        y: canvasHeight - overlayHeight - margin,
+        x: canvasWidth - overlayWidth - mx,
+        y: canvasHeight - overlayHeight - my,
       };
   }
 }
