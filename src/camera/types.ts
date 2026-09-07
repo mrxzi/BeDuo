@@ -168,7 +168,7 @@ export const DEFAULT_COMPOSITION_CONFIG: CompositionConfig = {
   frontOverlaySizeRatio: 0.32,
   frontOverlayMargin: 24,
   frontOverlayMarginX: 60,
-  frontOverlayMarginY: 160,
+  frontOverlayMarginY: 120,
   frontOverlayBorderRadius: 50,
   frontOverlayBorderWidth: 3,
   frontOverlayBorderColor: '#000000',

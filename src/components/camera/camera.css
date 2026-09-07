@@ -116,7 +116,7 @@
 }
 
 .front-camera-overlay--top-left {
-  top: calc(76px + var(--safe-top));
+  top: calc(68px + var(--safe-top));
   left: 24px;
   width: 32vw;
   max-width: 165px;
