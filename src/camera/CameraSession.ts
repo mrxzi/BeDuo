@@ -108,30 +108,33 @@ export async function attachStreamToVideo(
   stream: MediaStream,
   timeoutMs: number = 5000
 ): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
+  return new Promise<void>((resolve) => {
+    videoElement.srcObject = stream;
+    videoElement.defaultMuted = true;
+    videoElement.muted = true;
+    videoElement.setAttribute('muted', '');
+    videoElement.setAttribute('playsinline', 'true');
+    videoElement.setAttribute('webkit-playsinline', 'true');
+    videoElement.setAttribute('autoplay', 'true');
+
+    const tryPlay = () => {
+      videoElement.play().catch(() => {
+        // Autoplay policy or gesture required — will play on user tap
+      });
+    };
+
+    tryPlay();
+
     const timeout = setTimeout(() => {
-      reject(new Error('Video readiness timeout'));
+      resolve();
     }, timeoutMs);
 
     const onReady = () => {
       clearTimeout(timeout);
-      videoElement.removeEventListener('loadedmetadata', onMetadata);
+      videoElement.removeEventListener('loadedmetadata', onReady);
       videoElement.removeEventListener('playing', onReady);
       resolve();
     };
-
-    const onMetadata = () => {
-      if (videoElement.readyState >= 2) {
-        onReady();
-      } else {
-        videoElement.addEventListener('playing', onReady, { once: true });
-      }
-    };
-
-    videoElement.srcObject = stream;
-    videoElement.setAttribute('playsinline', '');
-    videoElement.setAttribute('autoplay', '');
-    videoElement.muted = true;
 
     if (videoElement.readyState >= 2) {
       clearTimeout(timeout);
@@ -139,11 +142,8 @@ export async function attachStreamToVideo(
       return;
     }
 
-    videoElement.addEventListener('loadedmetadata', onMetadata, { once: true });
-
-    videoElement.play().catch(() => {
-      // Autoplay blocked handling
-    });
+    videoElement.addEventListener('loadedmetadata', onReady, { once: true });
+    videoElement.addEventListener('playing', onReady, { once: true });
   });
 }
 

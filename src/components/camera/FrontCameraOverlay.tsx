@@ -4,6 +4,7 @@ import type { CameraOverlayPosition } from '../../camera/types';
 
 interface FrontCameraOverlayProps {
   position?: CameraOverlayPosition;
+  onClick?: () => void;
 }
 
 /**
@@ -14,7 +15,7 @@ interface FrontCameraOverlayProps {
  * so it works correctly on both iOS (sequential) and Android (simultaneous).
  */
 export const FrontCameraOverlay = forwardRef<HTMLVideoElement, FrontCameraOverlayProps>(
-  function FrontCameraOverlay({ position = 'top-left' }, ref) {
+  function FrontCameraOverlay({ position = 'top-left', onClick }, ref) {
     const [isPlaying, setIsPlaying] = useState(false);
     const internalRef = useRef<HTMLVideoElement | null>(null);
 
@@ -62,6 +63,9 @@ export const FrontCameraOverlay = forwardRef<HTMLVideoElement, FrontCameraOverla
     return (
       <div
         className={`front-camera-overlay front-camera-overlay--${position}`}
+        onClick={onClick}
+        title="Tap to trigger/sync camera"
+        style={{ cursor: onClick ? 'pointer' : 'default' }}
         aria-label="Front camera preview"
       >
         {showPlaceholder && (

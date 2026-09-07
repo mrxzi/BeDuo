@@ -55,11 +55,6 @@ function playShutterSound() {
   }
 }
 
-/** Format zoom level for display (e.g. "1.0×", "2.5×") */
-function formatZoom(zoom: number): string {
-  if (zoom === Math.round(zoom)) return `${zoom}×`;
-  return `${zoom.toFixed(1)}×`;
-}
 
 export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClose }) => {
   const rearVideoRef = useRef<HTMLVideoElement>(null);
@@ -97,21 +92,32 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
     initialize();
   }, [initialize]);
 
-  // Attach rear video when element & capability ready
-  useEffect(() => {
-    if (rearVideoRef.current && permissionState === 'granted') {
-      startRearCamera(rearVideoRef.current, currentLensIndex);
-    }
-  }, [permissionState, startRearCamera, currentLensIndex]);
+  // Synchronously trigger and start both rear & front cameras
+  const triggerCameras = useCallback(async () => {
+    if (permissionState !== 'granted') return;
 
-  // Always start front camera preview after permission — even on iOS (sequential mode).
-  // Sequential vs simultaneous only matters at capture time, not for live preview.
-  // CameraManager.startFrontCamera handles the failure silently for sequential mode.
-  useEffect(() => {
-    if (frontVideoRef.current && permissionState === 'granted') {
-      startFrontCamera(frontVideoRef.current);
+    try {
+      if (rearVideoRef.current) {
+        await startRearCamera(rearVideoRef.current, currentLensIndex);
+      }
+      // Small pause to allow hardware stream stabilization
+      await new Promise((res) => setTimeout(res, 120));
+      if (frontVideoRef.current) {
+        await startFrontCamera(frontVideoRef.current);
+      }
+      rearVideoRef.current?.play().catch(() => {});
+      frontVideoRef.current?.play().catch(() => {});
+    } catch (e) {
+      console.warn('[CameraView] Trigger sync error:', e);
     }
-  }, [permissionState, startFrontCamera]);
+  }, [permissionState, currentLensIndex, startRearCamera, startFrontCamera]);
+
+  // Initialize camera streams when permission granted
+  useEffect(() => {
+    if (permissionState === 'granted') {
+      triggerCameras();
+    }
+  }, [permissionState, triggerCameras]);
 
   // Handle capture completion when result is available
   useEffect(() => {
@@ -125,8 +131,6 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
     }
   }, [result, mode, onCaptureComplete]);
 
-
-
   const handleCaptureClick = useCallback(() => {
     playShutterSound();
     capture();
@@ -138,17 +142,26 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
 
   const rearLensCount = capabilities?.rearDevices.length || 1;
 
-  const handleSwitchLens = () => {
+  const handleSwitchLens = async () => {
     if (rearLensCount <= 1) return;
     const nextIndex = (currentLensIndex + 1) % rearLensCount;
     setCurrentLensIndex(nextIndex);
-    if (rearVideoRef.current) {
-      startRearCamera(rearVideoRef.current, nextIndex);
-    }
-    // Reset zoom when switching lens
     setZoom(1.0);
-  };
 
+    try {
+      if (rearVideoRef.current) {
+        await startRearCamera(rearVideoRef.current, nextIndex);
+      }
+      await new Promise((res) => setTimeout(res, 120));
+      if (frontVideoRef.current) {
+        await startFrontCamera(frontVideoRef.current);
+      }
+      rearVideoRef.current?.play().catch(() => {});
+      frontVideoRef.current?.play().catch(() => {});
+    } catch (e) {
+      console.warn('[CameraView] Switch lens error:', e);
+    }
+  };
 
   if (permissionState !== 'granted') {
     return (
@@ -172,6 +185,7 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
         flashMode={flashMode}
         hasFlash={capabilities?.hasFlash ?? false}
         onToggleFlash={toggleFlash}
+        onSwapCameras={triggerCameras}
         onClose={onClose}
         onToggleDebug={() => setShowDebug(!showDebug)}
         rearLensCount={rearLensCount}
@@ -188,8 +202,8 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
         onTouchEnd={onTouchEnd}
       />
 
-      {/* Front Camera PiP Overlay */}
-      <FrontCameraOverlay ref={frontVideoRef} />
+      {/* Front Camera PiP Overlay — tap overlay to trigger/re-sync cameras */}
+      <FrontCameraOverlay ref={frontVideoRef} onClick={triggerCameras} />
 
       {/* Flash & State Transition Animations */}
       <CaptureAnimation captureState={captureState} />
@@ -201,7 +215,6 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
           <span>{activeError.userMessage}</span>
         </div>
       )}
-
 
       {/* Bottom Control Bar */}
       <footer className="camera-controls-bar">
@@ -234,7 +247,7 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
               <strong>Permission:</strong> {permissionState}
             </div>
             <div className="debug-row">
-              <strong>Zoom:</strong> {formatZoom(zoom)}
+              <strong>Zoom:</strong> {zoom.toFixed(1)}×
             </div>
           </div>
         </div>
