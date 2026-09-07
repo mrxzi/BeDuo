@@ -1,0 +1,156 @@
+// ============================================================
+// CameraSession — Stream lifecycle management
+// ============================================================
+// Handles opening/closing camera streams, track management,
+// portrait orientation, and wide-angle lens selection for iPhone.
+
+import type { CameraFacing } from './types';
+
+export interface StreamOptions {
+  facing?: CameraFacing;
+  deviceId?: string;
+  width?: number;
+  height?: number;
+  aspectRatio?: number;
+}
+
+/**
+ * Open a camera stream with the given options.
+ * Prefers deviceId if provided, falls back to facingMode.
+ */
+export async function openStream(options: StreamOptions = {}): Promise<MediaStream> {
+  const constraints: MediaStreamConstraints = {
+    audio: false,
+    video: buildVideoConstraints(options),
+  };
+
+  return navigator.mediaDevices.getUserMedia(constraints);
+}
+
+/**
+ * Build video constraints optimized for mobile portrait view (iPhone & Android)
+ * and wide-angle lens preference.
+ */
+function buildVideoConstraints(options: StreamOptions): MediaTrackConstraints {
+  const constraints: MediaTrackConstraints = {};
+
+  if (options.deviceId) {
+    constraints.deviceId = { exact: options.deviceId };
+  } else if (options.facing) {
+    constraints.facingMode = { ideal: options.facing };
+  }
+
+  // Optimized portrait aspect ratio hint for iOS & mobile browsers (9:16 portrait)
+  const isPortrait = typeof window !== 'undefined' ? window.innerHeight > window.innerWidth : true;
+
+  if (isPortrait) {
+    constraints.aspectRatio = { ideal: 9 / 16 };
+    constraints.width = { ideal: 1080, max: 2160 };
+    constraints.height = { ideal: 1920, max: 3840 };
+  } else {
+    constraints.aspectRatio = { ideal: 16 / 9 };
+    constraints.width = { ideal: 1920, max: 3840 };
+    constraints.height = { ideal: 1080, max: 2160 };
+  }
+
+  return constraints;
+}
+
+/**
+ * Stop all tracks in a stream and release resources.
+ */
+export function stopStream(stream: MediaStream | null): void {
+  if (!stream) return;
+  stream.getTracks().forEach((track) => {
+    track.stop();
+  });
+}
+
+/**
+ * Stop all tracks of a specific kind in a stream.
+ */
+export function stopVideoTracks(stream: MediaStream | null): void {
+  if (!stream) return;
+  stream.getVideoTracks().forEach((track) => {
+    track.stop();
+  });
+}
+
+/**
+ * Check if a stream is still active (has live tracks).
+ */
+export function isStreamActive(stream: MediaStream | null): boolean {
+  if (!stream) return false;
+  return stream.getVideoTracks().some((track) => track.readyState === 'live');
+}
+
+/**
+ * Attach a stream to a video element and wait until it's ready to display.
+ */
+export async function attachStreamToVideo(
+  videoElement: HTMLVideoElement,
+  stream: MediaStream,
+  timeoutMs: number = 5000
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error('Video readiness timeout'));
+    }, timeoutMs);
+
+    const onReady = () => {
+      clearTimeout(timeout);
+      videoElement.removeEventListener('loadedmetadata', onMetadata);
+      videoElement.removeEventListener('playing', onReady);
+      resolve();
+    };
+
+    const onMetadata = () => {
+      if (videoElement.readyState >= 2) {
+        onReady();
+      } else {
+        videoElement.addEventListener('playing', onReady, { once: true });
+      }
+    };
+
+    videoElement.srcObject = stream;
+    videoElement.setAttribute('playsinline', '');
+    videoElement.setAttribute('autoplay', '');
+    videoElement.muted = true;
+
+    if (videoElement.readyState >= 2) {
+      clearTimeout(timeout);
+      resolve();
+      return;
+    }
+
+    videoElement.addEventListener('loadedmetadata', onMetadata, { once: true });
+
+    videoElement.play().catch(() => {
+      // Autoplay blocked handling
+    });
+  });
+}
+
+/**
+ * Detach stream from a video element and clean up.
+ */
+export function detachStreamFromVideo(videoElement: HTMLVideoElement | null): void {
+  if (!videoElement) return;
+  videoElement.pause();
+  videoElement.srcObject = null;
+  videoElement.removeAttribute('src');
+  videoElement.load();
+}
+
+/**
+ * Get the actual video dimensions from a stream's track settings.
+ */
+export function getStreamDimensions(stream: MediaStream): { width: number; height: number } | null {
+  const track = stream.getVideoTracks()[0];
+  if (!track) return null;
+  const settings = track.getSettings();
+  return {
+    width: settings.width || 0,
+    height: settings.height || 0,
+  };
+}
