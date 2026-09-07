@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap, ZapOff, Clock, Camera, RefreshCw, Sliders, X } from 'lucide-react';
+import { Zap, ZapOff, RefreshCw, Sliders, X } from 'lucide-react';
 import type { CameraMode, FlashMode } from '../../camera/types';
 
 interface CameraStatusBarProps {
@@ -17,7 +17,6 @@ interface CameraStatusBarProps {
 }
 
 export const CameraStatusBar: React.FC<CameraStatusBarProps> = ({
-  mode,
   flashMode,
   hasFlash,
   onToggleFlash,
@@ -29,21 +28,7 @@ export const CameraStatusBar: React.FC<CameraStatusBarProps> = ({
   currentLensIndex = 0,
   onSwitchLens,
 }) => {
-  const getModeBadge = () => {
-    switch (mode) {
-      case 'simultaneous':
-        return { label: 'DUAL LIVE', Icon: Zap };
-      case 'sequential':
-        return { label: 'DUO SEQUENTIAL', Icon: Clock };
-      case 'rear-only':
-        return { label: 'SINGLE CAM', Icon: Camera };
-      default:
-        return { label: 'CAMERA', Icon: Camera };
-    }
-  };
 
-  const badge = getModeBadge();
-  const BadgeIcon = badge.Icon;
 
   return (
     <header className="camera-status-bar">
@@ -58,10 +43,6 @@ export const CameraStatusBar: React.FC<CameraStatusBarProps> = ({
         </button>
       )}
 
-      <div className="camera-mode-badge">
-        <BadgeIcon size={14} className="badge-icon" />
-        <span className="badge-label">{badge.label}</span>
-      </div>
 
       <div className="camera-status-actions">
         {/* iPhone Lens switch button (0.5x / 1x Wide lens) */}

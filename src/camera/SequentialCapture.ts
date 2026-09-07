@@ -47,7 +47,7 @@ export async function performSequentialCapture(
 
   // Phase 1: Capture rear frame
   onPhase?.('capturing-rear');
-  const rearFrame = await captureFrame(rearVideoElement, 'environment', false);
+  const rearFrame = await captureFrame(rearVideoElement, 'environment', false, config.rearZoomLevel || 1.0);
 
   // Phase 2: Switch cameras
   onPhase?.('switching');

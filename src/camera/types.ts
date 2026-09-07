@@ -140,6 +140,7 @@ export interface CameraManagerConfig {
   composition: CompositionConfig;
   videoReadinessTimeoutMs: number;
   debugMode: boolean;
+  rearZoomLevel?: number;
 }
 
 /** Debug info for development panel */

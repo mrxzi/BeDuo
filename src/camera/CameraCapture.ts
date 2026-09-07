@@ -5,13 +5,13 @@
 import type { CapturedFrame, CameraFacing } from './types';
 
 /**
- * Capture a single frame from a video element.
- * Uses an offscreen canvas for efficiency.
+ * Capture a single frame from a video element with optional mirroring and zoom scaling.
  */
 export async function captureFrame(
   videoElement: HTMLVideoElement,
   facing: CameraFacing,
-  mirror: boolean = false
+  mirror: boolean = false,
+  zoomFactor: number = 1.0
 ): Promise<CapturedFrame> {
   const width = videoElement.videoWidth;
   const height = videoElement.videoHeight;
@@ -35,7 +35,16 @@ export async function captureFrame(
     ctx.scale(-1, 1);
   }
 
-  ctx.drawImage(videoElement, 0, 0, width, height);
+  if (zoomFactor > 1.0) {
+    // Zoom in: crop center section according to zoom factor
+    const cropWidth = width / zoomFactor;
+    const cropHeight = height / zoomFactor;
+    const cropX = (width - cropWidth) / 2;
+    const cropY = (height - cropHeight) / 2;
+    ctx.drawImage(videoElement, cropX, cropY, cropWidth, cropHeight, 0, 0, width, height);
+  } else {
+    ctx.drawImage(videoElement, 0, 0, width, height);
+  }
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
@@ -59,9 +68,6 @@ export async function captureFrame(
 
 /**
  * Wait for a video element to be in a state suitable for capture.
- * Checks that:
- * - Video has non-zero dimensions
- * - ReadyState is at least HAVE_CURRENT_DATA (2)
  */
 export function waitForVideoReady(
   videoElement: HTMLVideoElement,
@@ -79,7 +85,6 @@ export function waitForVideoReady(
       return false;
     };
 
-    // Already ready?
     if (checkReady()) {
       resolve();
       return;

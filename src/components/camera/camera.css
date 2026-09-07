@@ -481,3 +481,214 @@
 .camera-debug__value--false {
   color: #f44;
 }
+
+/* --- Camera View Container --- */
+.camera-view-container {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  background: #000;
+  overflow: hidden;
+  touch-action: none;
+  z-index: 200;
+}
+
+/* --- Controls Bar (shutter footer) --- */
+.camera-controls-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-camera-controls);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding-bottom: calc(52px + var(--safe-bottom));
+  padding-top: var(--space-6);
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
+}
+
+/* --- Error Banner --- */
+.camera-error-banner {
+  position: absolute;
+  top: calc(64px + var(--safe-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #fca5a5;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 20px;
+  white-space: nowrap;
+  max-width: calc(100vw - 40px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Zoom Control Bar --- */
+.zoom-control-bar {
+  position: absolute;
+  bottom: calc(160px + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: min(340px, 90vw);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 250ms ease;
+}
+
+.zoom-control-bar--visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.zoom-presets {
+  display: flex;
+  gap: 10px;
+}
+
+.zoom-preset-btn {
+  height: 36px;
+  min-width: 44px;
+  padding: 0 12px;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.82rem;
+  font-weight: 700;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease, transform 100ms ease;
+  cursor: pointer;
+}
+
+.zoom-preset-btn:active {
+  transform: scale(0.92);
+}
+
+.zoom-preset-btn--active {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #ffffff;
+}
+
+.zoom-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 8px 14px;
+}
+
+.zoom-label {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #ffffff;
+  min-width: 34px;
+  text-align: right;
+  letter-spacing: -0.02em;
+}
+
+.zoom-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+
+.zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: transform 100ms ease;
+}
+
+.zoom-slider::-webkit-slider-thumb:active {
+  transform: scale(1.2);
+}
+
+.zoom-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: none;
+  cursor: pointer;
+}
+
+/* --- Debug Modal --- */
+.debug-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 500;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 20px;
+}
+
+.debug-modal {
+  background: #111115;
+  border: 1px solid #27272a;
+  border-radius: 20px;
+  padding: 20px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 70vh;
+  overflow-y: auto;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #a1a1aa;
+}
+
+.debug-modal pre {
+  background: #08080a;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 0.72rem;
+  overflow-x: auto;
+  margin-bottom: 12px;
+  color: #22d3ee;
+}
+
+.debug-row {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0;
+  border-top: 1px solid #1f1f23;
+  font-size: 0.82rem;
+}

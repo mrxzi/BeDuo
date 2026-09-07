@@ -5,7 +5,7 @@
 // This is the single entry point for all camera operations.
 
 import { detectCameraCapabilities, clearCapabilitiesCache } from './CameraCapabilities';
-import { openStream, stopStream, attachStreamToVideo, detachStreamFromVideo, isStreamActive } from './CameraSession';
+import { openStream, stopStream, attachStreamToVideo, detachStreamFromVideo, isStreamActive, applyTrackZoom } from './CameraSession';
 import { captureFrame } from './CameraCapture';
 import { performSequentialCapture } from './SequentialCapture';
 import { composeImage } from './ImageComposer';
@@ -30,6 +30,7 @@ export class CameraManager {
   private rearVideoRef: HTMLVideoElement | null = null;
   private frontVideoRef: HTMLVideoElement | null = null;
   private sequentialVideoRef: HTMLVideoElement | null = null;
+  private rearZoomLevel = 1.0;
   private mode: CameraMode = 'unsupported';
   private permissionState: PermissionState = 'prompt';
   private lastError: CameraError | null = null;
@@ -41,7 +42,16 @@ export class CameraManager {
     this.config = { ...DEFAULT_CAMERA_CONFIG, ...config };
   }
 
-  // ---- Getters ----
+  // ---- Getters & Zoom ----
+
+  async setRearZoom(zoom: number): Promise<void> {
+    this.rearZoomLevel = zoom;
+    await applyTrackZoom(this.rearStream, zoom);
+  }
+
+  getRearZoom(): number {
+    return this.rearZoomLevel;
+  }
 
   getMode(): CameraMode {
     return this.mode;
@@ -147,7 +157,7 @@ export class CameraManager {
 
     try {
       const rearDevices = this.capabilities?.rearDevices || [];
-      const rearDevice = rearDevices[rearDeviceIndex] || rearDevices[0];
+      const rearDevice = rearDeviceIndex > 0 ? rearDevices[rearDeviceIndex] : undefined;
 
       if (this.rearStream) {
         stopStream(this.rearStream);
@@ -158,6 +168,9 @@ export class CameraManager {
         facing: 'environment',
         deviceId: rearDevice?.deviceId,
       });
+
+      this.rearZoomLevel = 1.0;
+      await applyTrackZoom(this.rearStream, 1.0);
 
       await attachStreamToVideo(videoElement, this.rearStream, this.config.videoReadinessTimeoutMs);
 
@@ -181,10 +194,15 @@ export class CameraManager {
   async startFrontCamera(videoElement: HTMLVideoElement): Promise<void> {
     this.frontVideoRef = videoElement;
 
-    if (this.mode !== 'simultaneous' && this.mode !== 'front-only') {
-      // In sequential mode, front camera is only opened during capture
+    // On rear-only or unsupported devices, skip entirely
+    if (this.mode === 'rear-only' || this.mode === 'unsupported') {
       return;
     }
+
+    // In front-only or simultaneous mode, front camera MUST succeed
+    // In sequential mode (iOS), we still try to open the front camera for LIVE PREVIEW.
+    // If it fails in sequential mode, we silently skip — capture still works via sequential switching.
+    const isCritical = this.mode === 'simultaneous' || this.mode === 'front-only';
 
     try {
       const frontDevice = this.capabilities?.frontDevices[0];
@@ -197,22 +215,29 @@ export class CameraManager {
       await attachStreamToVideo(videoElement, this.frontStream, this.config.videoReadinessTimeoutMs);
 
       if (this.config.debugMode) {
-        console.log('[CameraManager] Front camera started:', {
+        console.log('[CameraManager] Front camera preview started:', {
           width: videoElement.videoWidth,
           height: videoElement.videoHeight,
+          mode: this.mode,
         });
       }
     } catch (err) {
-      // Front camera failed in simultaneous mode — downgrade to sequential
-      if (this.mode === 'simultaneous') {
-        this.mode = 'sequential';
-        if (this.config.debugMode) {
-          console.warn('[CameraManager] Front camera failed, downgrading to sequential mode');
+      if (isCritical) {
+        // Downgrade simultaneous → sequential when front camera fails
+        if (this.mode === 'simultaneous') {
+          this.mode = 'sequential';
+          if (this.config.debugMode) {
+            console.warn('[CameraManager] Front camera failed, downgraded to sequential mode');
+          }
+          return;
         }
-        return;
+        this.lastError = classifyCameraError(err);
+        throw this.lastError;
       }
-      this.lastError = classifyCameraError(err);
-      throw this.lastError;
+      // Sequential / preview failure: non-critical — PiP will stay as placeholder
+      if (this.config.debugMode) {
+        console.warn('[CameraManager] Front camera preview failed in sequential mode (non-critical):', err);
+      }
     }
   }
 
@@ -266,42 +291,55 @@ export class CameraManager {
           throw new Error('Rear camera not available for sequential capture');
         }
 
-        const seqVideo = this.sequentialVideoRef || document.createElement('video');
-        seqVideo.setAttribute('playsinline', '');
-        seqVideo.muted = true;
-
-        // Temporarily add to DOM if not already there (needed for some browsers)
-        let addedToDOM = false;
-        if (!seqVideo.parentElement) {
-          seqVideo.style.position = 'fixed';
-          seqVideo.style.top = '-9999px';
-          seqVideo.style.left = '-9999px';
-          seqVideo.style.width = '1px';
-          seqVideo.style.height = '1px';
-          seqVideo.style.opacity = '0';
-          document.body.appendChild(seqVideo);
-          addedToDOM = true;
-        }
-
-        try {
-          const result = await performSequentialCapture(
-            this.rearVideoRef,
-            this.rearStream,
-            seqVideo,
-            this.config,
-            (phase) => onPhase?.(phase)
+        // OPTIMIZATION: If front camera preview stream is already live (iOS preview),
+        // capture both frames directly without switching — effectively simultaneous!
+        if (this.frontVideoRef && isStreamActive(this.frontStream)) {
+          onPhase?.('capturing');
+          rearFrame = await captureFrame(this.rearVideoRef, 'environment', false, this.rearZoomLevel);
+          frontFrame = await captureFrame(
+            this.frontVideoRef,
+            'user',
+            this.config.mirrorFrontCapture
           );
+        } else {
+          // Fallback: Classic sequential camera switch (rear → stop → front)
+          const seqVideo = this.sequentialVideoRef || document.createElement('video');
+          seqVideo.setAttribute('playsinline', '');
+          seqVideo.muted = true;
 
-          rearFrame = result.rearFrame;
-          frontFrame = result.frontFrame;
+          // Temporarily add to DOM if not already there (needed for some browsers)
+          let addedToDOM = false;
+          if (!seqVideo.parentElement) {
+            seqVideo.style.position = 'fixed';
+            seqVideo.style.top = '-9999px';
+            seqVideo.style.left = '-9999px';
+            seqVideo.style.width = '1px';
+            seqVideo.style.height = '1px';
+            seqVideo.style.opacity = '0';
+            document.body.appendChild(seqVideo);
+            addedToDOM = true;
+          }
 
-          // Rear stream was stopped during sequential capture
-          this.rearStream = null;
-        } finally {
-          // Clean up sequential video element
-          detachStreamFromVideo(seqVideo);
-          if (addedToDOM && seqVideo.parentElement) {
-            seqVideo.parentElement.removeChild(seqVideo);
+          try {
+            const result = await performSequentialCapture(
+              this.rearVideoRef,
+              this.rearStream,
+              seqVideo,
+              this.config,
+              (phase) => onPhase?.(phase)
+            );
+
+            rearFrame = result.rearFrame;
+            frontFrame = result.frontFrame;
+
+            // Rear stream was stopped during sequential capture
+            this.rearStream = null;
+          } finally {
+            // Clean up sequential video element
+            detachStreamFromVideo(seqVideo);
+            if (addedToDOM && seqVideo.parentElement) {
+              seqVideo.parentElement.removeChild(seqVideo);
+            }
           }
         }
 

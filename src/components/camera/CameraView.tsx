@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { AlertTriangle, Sliders, X } from 'lucide-react';
 import { useCamera } from '../../hooks/useCamera';
 import { useCapture } from '../../hooks/useCapture';
+import { useZoom } from '../../hooks/useZoom';
 import { CameraPreview } from './CameraPreview';
 import { FrontCameraOverlay } from './FrontCameraOverlay';
 import { ShutterButton } from './ShutterButton';
@@ -54,10 +55,15 @@ function playShutterSound() {
   }
 }
 
+/** Format zoom level for display (e.g. "1.0×", "2.5×") */
+function formatZoom(zoom: number): string {
+  if (zoom === Math.round(zoom)) return `${zoom}×`;
+  return `${zoom.toFixed(1)}×`;
+}
+
 export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClose }) => {
   const rearVideoRef = useRef<HTMLVideoElement>(null);
   const frontVideoRef = useRef<HTMLVideoElement>(null);
-
   const [showDebug, setShowDebug] = useState(false);
   const [flashMode, setFlashMode] = useState<FlashMode>('off');
   const [currentLensIndex, setCurrentLensIndex] = useState(0);
@@ -76,6 +82,16 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
 
   const { capture, captureState, result, error: captureError } = useCapture(manager);
 
+  // Zoom hook: syncs with manager and applies both native + digital zoom
+  const handleZoomChange = useCallback(
+    async (zoom: number) => {
+      await manager.setRearZoom(zoom);
+    },
+    [manager]
+  );
+
+  const { zoom, setZoom, onTouchStart, onTouchMove, onTouchEnd } = useZoom(handleZoomChange);
+
   // Initialize camera system on mount
   useEffect(() => {
     initialize();
@@ -88,12 +104,14 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
     }
   }, [permissionState, startRearCamera, currentLensIndex]);
 
-  // Attach front video when in simultaneous mode
+  // Always start front camera preview after permission — even on iOS (sequential mode).
+  // Sequential vs simultaneous only matters at capture time, not for live preview.
+  // CameraManager.startFrontCamera handles the failure silently for sequential mode.
   useEffect(() => {
-    if (frontVideoRef.current && mode === 'simultaneous' && permissionState === 'granted') {
+    if (frontVideoRef.current && permissionState === 'granted') {
       startFrontCamera(frontVideoRef.current);
     }
-  }, [mode, permissionState, startFrontCamera]);
+  }, [permissionState, startFrontCamera]);
 
   // Handle capture completion when result is available
   useEffect(() => {
@@ -106,6 +124,8 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
       onCaptureComplete(dualResult);
     }
   }, [result, mode, onCaptureComplete]);
+
+
 
   const handleCaptureClick = useCallback(() => {
     playShutterSound();
@@ -125,7 +145,10 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
     if (rearVideoRef.current) {
       startRearCamera(rearVideoRef.current, nextIndex);
     }
+    // Reset zoom when switching lens
+    setZoom(1.0);
   };
+
 
   if (permissionState !== 'granted') {
     return (
@@ -156,15 +179,17 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
         onSwitchLens={handleSwitchLens}
       />
 
-      {/* Main Fullscreen Rear Camera Preview */}
-      <CameraPreview ref={rearVideoRef} />
+      {/* Main Fullscreen Rear Camera Preview with pinch-to-zoom */}
+      <CameraPreview
+        ref={rearVideoRef}
+        zoom={zoom}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      />
 
       {/* Front Camera PiP Overlay */}
-      <FrontCameraOverlay
-        ref={frontVideoRef}
-        mode={mode}
-        isActive={mode === 'simultaneous'}
-      />
+      <FrontCameraOverlay ref={frontVideoRef} />
 
       {/* Flash & State Transition Animations */}
       <CaptureAnimation captureState={captureState} />
@@ -176,6 +201,7 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
           <span>{activeError.userMessage}</span>
         </div>
       )}
+
 
       {/* Bottom Control Bar */}
       <footer className="camera-controls-bar">
@@ -206,6 +232,9 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
             </div>
             <div className="debug-row">
               <strong>Permission:</strong> {permissionState}
+            </div>
+            <div className="debug-row">
+              <strong>Zoom:</strong> {formatZoom(zoom)}
             </div>
           </div>
         </div>

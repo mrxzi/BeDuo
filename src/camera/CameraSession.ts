@@ -40,20 +40,36 @@ function buildVideoConstraints(options: StreamOptions): MediaTrackConstraints {
     constraints.facingMode = { ideal: options.facing };
   }
 
-  // Optimized portrait aspect ratio hint for iOS & mobile browsers (9:16 portrait)
-  const isPortrait = typeof window !== 'undefined' ? window.innerHeight > window.innerWidth : true;
-
-  if (isPortrait) {
-    constraints.aspectRatio = { ideal: 9 / 16 };
-    constraints.width = { ideal: 1080, max: 2160 };
-    constraints.height = { ideal: 1920, max: 3840 };
-  } else {
-    constraints.aspectRatio = { ideal: 16 / 9 };
-    constraints.width = { ideal: 1920, max: 3840 };
-    constraints.height = { ideal: 1080, max: 2160 };
-  }
+  // Use ideal resolution without hard aspect ratio lock to prevent native sensor crop
+  constraints.width = { ideal: 1920 };
+  constraints.height = { ideal: 1080 };
 
   return constraints;
+}
+
+/**
+ * Attempt native hardware zoom on active video track.
+ */
+export async function applyTrackZoom(stream: MediaStream | null, zoomLevel: number): Promise<boolean> {
+  if (!stream) return false;
+  const track = stream.getVideoTracks()[0];
+  if (!track) return false;
+
+  try {
+    const capabilities = (track.getCapabilities?.() || {}) as { zoom?: { min: number; max: number } };
+    if (capabilities.zoom) {
+      const minZoom = capabilities.zoom.min || 1;
+      const maxZoom = capabilities.zoom.max || 5;
+      const clampedZoom = Math.min(Math.max(zoomLevel, minZoom), maxZoom);
+      await track.applyConstraints({
+        advanced: [{ zoom: clampedZoom } as unknown as MediaTrackConstraintSet],
+      });
+      return true;
+    }
+  } catch (e) {
+    // Hardware track zoom unavailable — fallback to digital scale
+  }
+  return false;
 }
 
 /**

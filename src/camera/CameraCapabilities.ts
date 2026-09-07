@@ -132,8 +132,8 @@ async function probeSimultaneousStreams(
   }
 }
 
-// Session cache key
-const CAPABILITIES_CACHE_KEY = '__beduo_camera_caps';
+// Session cache key — bump version when detection logic changes
+const CAPABILITIES_CACHE_KEY = '__beduo_camera_caps_v2';
 
 /**
  * Main capability detection function.

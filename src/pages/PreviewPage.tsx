@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { RefreshCw, Send, Zap, Clock } from 'lucide-react';
+import { RefreshCw, Send } from 'lucide-react';
 import type { DualCaptureResult } from '../camera/types';
 import { PostService } from '../services/posts';
 
@@ -88,19 +88,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
           alt="Composited BeDuo moment"
           className="preview-composited-image"
         />
-        <div className="preview-badge">
-          {captureResult.isSimultaneous ? (
-            <>
-              <Zap size={14} color="#ccff00" />
-              <span>DUAL LIVE</span>
-            </>
-          ) : (
-            <>
-              <Clock size={14} color="#a1a1aa" />
-              <span>DUO SEQUENTIAL</span>
-            </>
-          )}
-        </div>
+
       </div>
 
       {/* Caption Form Bar */}
