@@ -70,7 +70,9 @@ export const FrontCameraOverlay = forwardRef<HTMLVideoElement, FrontCameraOverla
       >
         {showPlaceholder && (
           <div className="front-camera-overlay__placeholder">
-            <Camera size={18} color="#a1a1aa" />
+            <Camera size={22} color="#ccff00" style={{ marginBottom: 4 }} />
+            <span style={{ fontWeight: 700, fontSize: '0.68rem', color: '#ffffff', letterSpacing: '0.04em' }}>SELFIE SNAP</span>
+            <span style={{ fontSize: '0.58rem', color: '#a1a1aa', marginTop: 2 }}>Auto Dual Capture</span>
           </div>
         )}
         <video

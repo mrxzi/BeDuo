@@ -199,9 +199,12 @@ export class CameraManager {
       return;
     }
 
-    // In front-only or simultaneous mode, front camera MUST succeed
-    // In sequential mode (iOS), we still try to open the front camera for LIVE PREVIEW.
-    // If it fails in sequential mode, we silently skip — capture still works via sequential switching.
+    // In sequential mode (iPhone), opening parallel front stream while rear stream is active
+    // is blocked by iOS WebKit hardware limits. Skip parallel stream to prevent stream collapse.
+    if (this.mode === 'sequential') {
+      return;
+    }
+
     const isCritical = this.mode === 'simultaneous' || this.mode === 'front-only';
 
     try {
