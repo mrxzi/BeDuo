@@ -119,9 +119,12 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
     }
   }, [permissionState, triggerCameras]);
 
+  const handledCaptureRef = useRef(false);
+
   // Handle capture completion when result is available
   useEffect(() => {
-    if (result) {
+    if (result && !handledCaptureRef.current) {
+      handledCaptureRef.current = true;
       const dualResult: DualCaptureResult = {
         ...result,
         compositedDataUrl: result.objectUrl,

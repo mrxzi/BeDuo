@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router';
 import { HomePage } from './pages/HomePage';
 import { CameraPage } from './pages/CameraPage';
@@ -14,13 +14,13 @@ import './App.css';
 export function App() {
   const [captureResult, setCaptureResult] = useState<DualCaptureResult | null>(null);
 
-  const handleCapture = (result: DualCaptureResult) => {
+  const handleCapture = useCallback((result: DualCaptureResult) => {
     setCaptureResult(result);
-  };
+  }, []);
 
-  const handleClearCapture = () => {
+  const handleClearCapture = useCallback(() => {
     setCaptureResult(null);
-  };
+  }, []);
 
   return (
     <BrowserRouter>

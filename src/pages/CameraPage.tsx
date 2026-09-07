@@ -10,14 +10,17 @@ interface CameraPageProps {
 export const CameraPage: React.FC<CameraPageProps> = ({ onCapture }) => {
   const navigate = useNavigate();
 
-  const handleCaptureComplete = (result: DualCaptureResult) => {
-    onCapture(result);
-    navigate('/preview');
-  };
+  const handleCaptureComplete = React.useCallback(
+    (result: DualCaptureResult) => {
+      onCapture(result);
+      navigate('/preview');
+    },
+    [onCapture, navigate]
+  );
 
-  const handleClose = () => {
+  const handleClose = React.useCallback(() => {
     navigate('/');
-  };
+  }, [navigate]);
 
   return (
     <div className="camera-page-wrapper">
