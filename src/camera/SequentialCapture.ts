@@ -6,7 +6,7 @@
 // automatically with a single shutter press.
 
 import { openStream, stopStream, attachStreamToVideo } from './CameraSession';
-import { captureFrame, waitForVideoReady } from './CameraCapture';
+import { captureFrame } from './CameraCapture';
 import type { CapturedFrame, CameraManagerConfig } from './types';
 
 export interface SequentialCaptureResult {
@@ -39,20 +39,20 @@ export type SequentialCapturePhase =
 export async function performSequentialCapture(
   rearVideoElement: HTMLVideoElement,
   rearStream: MediaStream,
-  frontVideoElement: HTMLVideoElement,
+  targetVideoElement: HTMLVideoElement,
   config: CameraManagerConfig,
   onPhase?: SequentialCaptureCallback
 ): Promise<SequentialCaptureResult> {
   const startTime = Date.now();
 
-  // Phase 1: Capture rear frame
+  // Phase 1: Capture rear frame from active rearVideoElement
   onPhase?.('capturing-rear');
   const rearFrame = await captureFrame(rearVideoElement, 'environment', false, config.rearZoomLevel || 1.0);
 
   // Phase 2: Switch cameras
   onPhase?.('switching');
 
-  // Stop rear stream immediately to release camera hardware
+  // Stop rear stream immediately to release camera hardware for front camera
   stopStream(rearStream);
 
   // Open front camera
@@ -62,34 +62,31 @@ export async function performSequentialCapture(
     frontStream = await openStream({ facing: 'user' });
 
     await attachStreamToVideo(
-      frontVideoElement,
+      targetVideoElement,
       frontStream,
       config.videoReadinessTimeoutMs
     );
 
-    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-    await waitForVideoReady(frontVideoElement, config.videoReadinessTimeoutMs);
+    // Give iOS a brief moment (200ms) to decode & render the first front frame
+    await new Promise<void>((resolve) => setTimeout(resolve, 200));
 
     onPhase?.('capturing-front');
     frontFrame = await captureFrame(
-      frontVideoElement,
+      targetVideoElement,
       'user',
       config.mirrorFrontCapture
     );
   } catch (err) {
-    console.warn('[SequentialCapture] Front camera switch failed, capturing fallback selfie frame:', err);
-    // Fallback: try default video stream or mirror rear frame as selfie
-    try {
-      frontStream = await openStream({ facing: 'environment' });
-      await attachStreamToVideo(frontVideoElement, frontStream, 2000);
-      frontFrame = await captureFrame(frontVideoElement, 'user', true);
-    } catch {
-      frontFrame = { ...rearFrame, facing: 'user' };
+    console.warn('[SequentialCapture] Front camera switch failed, fallback selfie frame:', err);
+    frontFrame = {
+      ...rearFrame,
+      facing: 'user',
+    };
+  } finally {
+    if (frontStream) {
+      stopStream(frontStream);
     }
   }
-
-  // Clean up front stream
-  stopStream(frontStream);
 
   const totalDurationMs = Date.now() - startTime;
 

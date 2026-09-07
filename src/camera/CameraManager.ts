@@ -305,45 +305,19 @@ export class CameraManager {
             this.config.mirrorFrontCapture
           );
         } else {
-          // Fallback: Classic sequential camera switch (rear → stop → front)
-          const seqVideo = this.sequentialVideoRef || document.createElement('video');
-          seqVideo.setAttribute('playsinline', '');
-          seqVideo.muted = true;
+          // Sequential camera switch using the main visible video element (rearVideoRef)
+          const result = await performSequentialCapture(
+            this.rearVideoRef,
+            this.rearStream,
+            this.rearVideoRef,
+            this.config,
+            (phase) => onPhase?.(phase)
+          );
 
-          // Temporarily add to DOM if not already there (needed for some browsers)
-          let addedToDOM = false;
-          if (!seqVideo.parentElement) {
-            seqVideo.style.position = 'fixed';
-            seqVideo.style.top = '-9999px';
-            seqVideo.style.left = '-9999px';
-            seqVideo.style.width = '1px';
-            seqVideo.style.height = '1px';
-            seqVideo.style.opacity = '0';
-            document.body.appendChild(seqVideo);
-            addedToDOM = true;
-          }
+          rearFrame = result.rearFrame;
+          frontFrame = result.frontFrame;
 
-          try {
-            const result = await performSequentialCapture(
-              this.rearVideoRef,
-              this.rearStream,
-              seqVideo,
-              this.config,
-              (phase) => onPhase?.(phase)
-            );
-
-            rearFrame = result.rearFrame;
-            frontFrame = result.frontFrame;
-
-            // Rear stream was stopped during sequential capture
-            this.rearStream = null;
-          } finally {
-            // Clean up sequential video element
-            detachStreamFromVideo(seqVideo);
-            if (addedToDOM && seqVideo.parentElement) {
-              seqVideo.parentElement.removeChild(seqVideo);
-            }
-          }
+          this.rearStream = null;
         }
 
       } else if (this.mode === 'rear-only' || this.mode === 'front-only') {
