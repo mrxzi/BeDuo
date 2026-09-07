@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Send } from 'lucide-react';
+import { Send, MapPin, Users } from 'lucide-react';
 import type { DualCaptureResult } from '../camera/types';
 import { PostService } from '../services/posts';
 
@@ -9,12 +9,53 @@ interface PreviewPageProps {
   onClearCapture: () => void;
 }
 
+/** Simple geolocation city resolver — works offline gracefully */
+function useLocationLabel() {
+  const [label, setLabel] = useState<string>('My Location');
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        // Reverse-geocode via nominatim (free, no key required)
+        const { latitude, longitude } = pos.coords;
+        fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+          { headers: { 'Accept-Language': 'en' } }
+        )
+          .then((r) => r.json())
+          .then((data) => {
+            const city =
+              data?.address?.city ||
+              data?.address?.town ||
+              data?.address?.village ||
+              data?.address?.county ||
+              'My Location';
+            const country = data?.address?.country_code?.toUpperCase() || '';
+            setLabel(country ? `${city}, ${country}` : city);
+          })
+          .catch(() => {
+            setLabel('My Location');
+          });
+      },
+      () => {
+        setLabel('My Location');
+      },
+      { timeout: 5000 }
+    );
+  }, []);
+
+  return label;
+}
+
 export const PreviewPage: React.FC<PreviewPageProps> = ({
   captureResult,
   onClearCapture,
 }) => {
   const navigate = useNavigate();
   const [isPosting, setIsPosting] = useState(false);
+  const locationLabel = useLocationLabel();
 
   if (!captureResult) {
     return (
@@ -38,7 +79,7 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
       PostService.addPost({
         imageUrl: captureResult.compositedDataUrl,
         caption: '',
-        location: 'Local Moment',
+        location: locationLabel,
       });
       onClearCapture();
       navigate('/');
@@ -67,6 +108,19 @@ export const PreviewPage: React.FC<PreviewPageProps> = ({
           alt="Composited BeDuo moment"
           className="preview-composited-image"
         />
+
+        {/* Center Info Overlay: Location + My Friends — centered, slightly below middle */}
+        <div className="preview-center-info">
+          <div className="preview-friends-badge">
+            <Users size={12} className="preview-friends-icon" />
+            <span className="preview-friends-text">My Friends</span>
+          </div>
+          <div className="preview-location-badge">
+            <MapPin size={12} className="preview-location-icon" />
+            <span className="preview-location-text">{locationLabel}</span>
+          </div>
+        </div>
+
       </div>
 
       {/* Bottom Send Action Button Bar */}

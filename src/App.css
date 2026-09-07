@@ -587,6 +587,78 @@
   color: #ffffff;
 }
 
+/* --- Preview Center Info Overlay (Location + Friends) --- */
+.preview-center-info {
+  position: absolute;
+  left: 50%;
+  top: 92%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  pointer-events: none;
+  z-index: 10;
+  width: max-content;
+  max-width: 90%;
+}
+
+/* --- Preview Location Badge --- */
+.preview-location-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0, 0, 0, 0.52);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 5px 12px 5px 9px;
+}
+
+.preview-location-icon {
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.preview-location-text {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Preview My Friends Badge --- */
+.preview-friends-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0, 0, 0, 0.52);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 5px 12px 5px 9px;
+}
+
+.preview-friends-icon {
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.preview-friends-text {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
 /* ============================================================
    Profile & Discover Pages
    ============================================================ */

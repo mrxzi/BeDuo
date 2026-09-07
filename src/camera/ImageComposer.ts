@@ -34,9 +34,6 @@ export async function composeImage(
   const frontImg = await loadImageFromBlob(frontFrame.blob);
   drawFrontOverlay(ctx, frontImg, config);
 
-  // --- Draw Watermark Logo (bottom center) ---
-  await drawWatermarkLogo(ctx, outputWidth, outputHeight);
-
   // --- Export ---
   const blob = await canvasToBlob(canvas, config.format, config.quality);
 
@@ -72,9 +69,6 @@ export async function composeSingleImage(
 
   const img = await loadImageFromBlob(frame.blob);
   drawCoverFit(ctx, img, 0, 0, outputWidth, outputHeight);
-
-  // --- Draw Watermark Logo (bottom center) ---
-  await drawWatermarkLogo(ctx, outputWidth, outputHeight);
 
   const blob = await canvasToBlob(canvas, config.format, config.quality);
   const objectUrl = URL.createObjectURL(blob);
@@ -151,37 +145,31 @@ function drawFrontOverlay(
     frontOverlayMargin
   );
 
-  // Draw border (slightly larger rounded rect behind the image)
-  if (frontOverlayBorderWidth > 0) {
-    ctx.save();
-    const bx = x - frontOverlayBorderWidth;
-    const by = y - frontOverlayBorderWidth;
-    const bw = overlayWidth + frontOverlayBorderWidth * 2;
-    const bh = overlayHeight + frontOverlayBorderWidth * 2;
-    const br = frontOverlayBorderRadius + frontOverlayBorderWidth;
-
-    drawRoundedRect(ctx, bx, by, bw, bh, br);
-    ctx.fillStyle = frontOverlayBorderColor;
-    ctx.fill();
-    ctx.restore();
-  }
-
-  // Draw shadow
+  // Draw shadow & black backdrop
   ctx.save();
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-  ctx.shadowBlur = 20;
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+  ctx.shadowBlur = 24;
   ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 4;
+  ctx.shadowOffsetY = 6;
 
-  // Clip to rounded rect
+  drawRoundedRect(ctx, x, y, overlayWidth, overlayHeight, frontOverlayBorderRadius);
+  ctx.fillStyle = '#000000';
+  ctx.fill();
+
+  // Clip & Draw front image
+  ctx.save();
   drawRoundedRect(ctx, x, y, overlayWidth, overlayHeight, frontOverlayBorderRadius);
   ctx.clip();
-
-  // Clear shadow for actual drawing
-  ctx.shadowColor = 'transparent';
-
-  // Draw the front image (cover-fit within the overlay area)
   drawCoverFit(ctx, img, x, y, overlayWidth, overlayHeight);
+  ctx.restore();
+
+  // Draw smooth outer stroke border
+  if (frontOverlayBorderWidth > 0) {
+    drawRoundedRect(ctx, x, y, overlayWidth, overlayHeight, frontOverlayBorderRadius);
+    ctx.lineWidth = frontOverlayBorderWidth * 2;
+    ctx.strokeStyle = frontOverlayBorderColor || '#000000';
+    ctx.stroke();
+  }
 
   ctx.restore();
 }
