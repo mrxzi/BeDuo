@@ -4,6 +4,7 @@ import type { CameraOverlayPosition } from '../../camera/types';
 
 interface FrontCameraOverlayProps {
   position?: CameraOverlayPosition;
+  isSwapped?: boolean;
   onClick?: () => void;
 }
 
@@ -12,7 +13,7 @@ interface FrontCameraOverlayProps {
  * Tracks actual stream playing state via 'playing'/'emptied' events.
  */
 export const FrontCameraOverlay = forwardRef<HTMLVideoElement, FrontCameraOverlayProps>(
-  function FrontCameraOverlay({ position = 'top-left', onClick }, ref) {
+  function FrontCameraOverlay({ position = 'top-left', isSwapped = false, onClick }, ref) {
     const [isPlaying, setIsPlaying] = useState(false);
     const internalRef = useRef<HTMLVideoElement | null>(null);
 
@@ -75,7 +76,10 @@ export const FrontCameraOverlay = forwardRef<HTMLVideoElement, FrontCameraOverla
           autoPlay
           playsInline
           muted
-          style={{ display: showPlaceholder ? 'none' : 'block' }}
+          style={{
+            display: showPlaceholder ? 'none' : 'block',
+            transform: isSwapped ? 'none' : 'scaleX(-1)',
+          }}
           aria-label="Front camera video feed"
         />
       </div>

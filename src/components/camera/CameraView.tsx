@@ -204,6 +204,7 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
       <CameraPreview
         ref={mainVideoRef}
         zoom={isSwapped ? 1 : zoom}
+        isSwapped={isSwapped}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
@@ -213,6 +214,7 @@ export const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, onClo
       {/* Camera PiP Overlay (Front by default, Rear when swapped) */}
       <FrontCameraOverlay
         ref={overlayVideoRef}
+        isSwapped={isSwapped}
         onClick={handleOverlayClick}
       />
 

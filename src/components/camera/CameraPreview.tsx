@@ -3,6 +3,7 @@ import { forwardRef } from 'react';
 interface CameraPreviewProps {
   className?: string;
   zoom?: number;
+  isSwapped?: boolean;
   onTouchStart?: (e: React.TouchEvent) => void;
   onTouchMove?: (e: React.TouchEvent) => void;
   onTouchEnd?: (e: React.TouchEvent) => void;
@@ -10,12 +11,12 @@ interface CameraPreviewProps {
 }
 
 /**
- * Rear camera fullscreen preview video element.
- * Supports digital zoom via CSS scale transform.
+ * Main camera fullscreen preview video element.
+ * Supports digital zoom and selfie mirror transform.
  */
 export const CameraPreview = forwardRef<HTMLVideoElement, CameraPreviewProps>(
   function CameraPreview(
-    { className = '', zoom = 1, onTouchStart, onTouchMove, onTouchEnd, onClick },
+    { className = '', zoom = 1, isSwapped = false, onTouchStart, onTouchMove, onTouchEnd, onClick },
     ref
   ) {
     return (
@@ -34,9 +35,9 @@ export const CameraPreview = forwardRef<HTMLVideoElement, CameraPreviewProps>(
           autoPlay
           playsInline
           muted
-          aria-label="Rear camera preview"
+          aria-label="Main camera preview"
           style={{
-            transform: `scale(${zoom})`,
+            transform: `scale(${zoom}) ${isSwapped ? 'scaleX(-1)' : ''}`,
             transformOrigin: 'center center',
             transition: zoom === 1 ? 'none' : 'transform 0.05s linear',
           }}
